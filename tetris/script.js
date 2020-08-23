@@ -160,9 +160,16 @@ Piece.prototype.move_down = function move_down() {
     if (!checkCollisions(this.tetromino[this.tetrominoN], this.x, this.y + 1)) {
         this.y += 1;
     }
+    if (checkCollisions(this.tetromino[this.tetrominoN], this.x, this.y + 1) === LOWER_COLLISION
+        || checkCollisions(this.tetromino[this.tetrominoN], this.x, this.y + 1) === PIECE_COLLISION) {
+        piece = new Piece(random_piece());
+    }
     draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
 
-    draw_board(g_board);
+    if (can_delete_row()) {
+        delete_row(can_delete_row())
+        piece = new Piece(random_piece());
+    }
 }
 
 Piece.prototype.move_right = function move_right() {
@@ -172,7 +179,10 @@ Piece.prototype.move_right = function move_right() {
     }
     draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
 
-    draw_board(g_board);
+    if (can_delete_row()) {
+        delete_row(can_delete_row())
+        piece = new Piece(random_piece());
+    }
 }
 
 Piece.prototype.move_left = function move_left() {
@@ -182,7 +192,11 @@ Piece.prototype.move_left = function move_left() {
     }
     draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
     
-    draw_board(g_board);
+
+    if (can_delete_row()) {
+        delete_row(can_delete_row())
+        piece = new Piece(random_piece());
+    }
 }
 
 Piece.prototype.rotate = function rotate() {
@@ -193,9 +207,28 @@ Piece.prototype.rotate = function rotate() {
     }
     draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
 
-    draw_board(g_board);
+    if (can_delete_row()) {
+        delete_row(can_delete_row())
+        piece = new Piece(random_piece());
+    }
 }
 
+function can_delete_row() {
+    for (let y = ROWS - 1; y >= 0; y--) {
+        if (g_board[y].indexOf(0) < 0) {
+            console.log(`delete row`);
+            return y;
+        }
+    }
+    return false;
+}
+
+function delete_row(y) {
+    // no zeros, delete the row
+    for (let next_row = y - 1; next_row > 0; next_row--) {
+        g_board[next_row + 1] = g_board[next_row];
+    }
+}
 
 function move_piece(event) {
     switch (event.keyCode) {
@@ -211,5 +244,11 @@ function random_piece() {
 }
 
 document.addEventListener(`keydown`, move_piece);
-//let piece = new Piece(Z_PIECE, `blue`);
+let piece = new Piece(random_piece());
 
+function main_loop() {
+    draw_board(g_board);
+    requestAnimationFrame(main_loop);
+}
+
+requestAnimationFrame(main_loop);
