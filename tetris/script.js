@@ -10,11 +10,17 @@ const COLUMNS = 10;
 const VACANT = `white`; //vacant square color
 const OUTLINE = `black`;
 const SQ = 20; //square size
+const EMPTY_SPACE = 0;
 
 const LEFT_ARROW = 37;
 const UP_ARROW = 38;
 const RIGHT_ARROW = 39;
 const DOWN_ARROW = 40;
+
+const NO_COLLISION = 0;
+const LOWER_COLLISION = 1;
+const SIDE_COLLISION = 2;
+const PIECE_COLLISION = 3;
 
 const Z_COLOR = `red`;
 const S_COLOR = `green`;
@@ -24,124 +30,15 @@ const L_COLOR = `orange`;
 const I_COLOR = `aqua`;
 const O_COLOR = `yellow`;
 
-const Z_PIECE = [
-    [[1, 1, 0],
-    [0, 1, 1],
-    [0, 0, 0]],
-    [[0, 0, 1],
-    [0, 1, 1],
-    [0, 1, 0]],
-    [[0, 0, 0],
-    [1, 1, 0],
-    [0, 1, 1]],
-    [[0, 1, 0],
-    [1, 1, 0],
-    [1, 0, 0]],
-];
-
-const S_PIECE = [
-    [[0, 1, 1],
-    [1, 1, 0],
-    [0, 0, 0]],
-    [[0, 1, 0],
-    [0, 1, 1],
-    [0, 0, 1]],
-    [[0, 0, 0],
-    [0, 1, 1],
-    [1, 1, 0]],
-    [[1, 0, 0],
-    [1, 1, 0],
-    [0, 1, 0]]
-];
-
-const J_PIECE = [
-    [[0, 1, 0],
-    [0, 1, 0],
-    [1, 1, 0]],
-    [[1, 0, 0],
-    [1, 1, 1],
-    [0, 0, 0]],
-    [[0, 1, 1],
-    [0, 1, 0],
-    [0, 1, 0]],
-    [[0, 0, 0],
-    [1, 1, 1],
-    [0, 0, 1]]
-];
-
-const T_PIECE = [
-    [[0, 0, 0],
-    [1, 1, 1],
-    [0, 1, 0]],
-    [[0, 1, 0],
-    [1, 1, 0],
-    [0, 1, 0]],
-    [[0, 1, 0],
-    [1, 1, 1],
-    [0, 0, 0]],
-    [[0, 1, 0],
-    [0, 1, 1],
-    [0, 1, 0]],
-];
-
-const L_PIECE = [
-    [[0, 1, 0],
-    [0, 1, 0],
-    [0, 1, 1]],
-    [[0, 0, 0],
-    [1, 1, 1],
-    [1, 0, 0]],
-    [[1, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0]],
-    [[0, 0, 1],
-    [1, 1, 1],
-    [0, 0, 0]]
-];
-
-const I_PIECE = [
-    [[0, 1, 0, 0],
-    [0, 1, 0, 0],
-    [0, 1, 0, 0],
-    [0, 1, 0, 0]],
-    [[0, 0, 0, 0],
-    [1, 1, 1, 1],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0]],
-    [[0, 0, 1, 0],
-    [0, 0, 1, 0],
-    [0, 0, 1, 0],
-    [0, 0, 1, 0]],
-    [[0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [1, 1, 1, 1],
-    [0, 0, 0, 0]]
-];
-
-const O_PIECE = [
-    [[0, 0, 0, 0],
-    [0, 1, 1, 0],
-    [0, 1, 1, 0],
-    [0, 0, 0, 0]],
-    [[0, 0, 0, 0],
-    [0, 1, 1, 0],
-    [0, 1, 1, 0],
-    [0, 0, 0, 0]],
-    [[0, 0, 0, 0],
-    [0, 1, 1, 0],
-    [0, 1, 1, 0],
-    [0, 0, 0, 0]],
-    [[0, 0, 0, 0],
-    [0, 1, 1, 0],
-    [0, 1, 1, 0],
-    [0, 0, 0, 0]]
-];
-
-const pieces = [Z_PIECE, S_PIECE, J_PIECE, T_PIECE, L_PIECE, I_PIECE, O_PIECE];
-
 function make_board() {
-    let one_row = Array(COLUMNS).fill(0);
-    let board = Array(ROWS).fill(one_row);
+    let board = []
+    for (let y = 0; y < ROWS; y++) {
+        let row = [];
+        for (let x = 0; x < COLUMNS; x++) {
+            row.push(EMPTY_SPACE);
+        }
+        board.push(row);
+    }
     return board;
 }
 
@@ -156,6 +53,9 @@ function draw_board(board) {
         for (let c = 0; c < COLUMNS; c++) {
             if (board[r][c] === 0) {
                 draw_square(c, r, VACANT, OUTLINE);
+            }
+            else {
+                draw_square(c, r, board[r][c], OUTLINE);
             }
         }
     }
@@ -200,99 +100,100 @@ class Piece {
         }
 
         this.x = 4;
-        this.y = -2;
+        this.y = 0;
 
         this.size = this.tetromino.length;
     }
 }
 
-Piece.prototype.draw_piece = function draw_piece() {
-    let piece_frame = this.active_tetromino;
+function draw_piece(piece_frame, x, y, color) {
     for (let row = 0; row < piece_frame.length; row++) {
         for (let col = 0; col < piece_frame[row].length; col++) {
             if (piece_frame[row][col] === 1) {
-                draw_square(this.x + col, this.y + row, this.color, OUTLINE);
+                g_board[y + row][x + col] = color;
             }
         }
     }
 }
 
-Piece.prototype.undraw_piece = function undraw_piece() {
-    let piece_frame = this.active_tetromino;
+function undraw_piece(piece_frame, x, y) {
     for (let row = 0; row < piece_frame.length; row++) {
         for (let col = 0; col < piece_frame[row].length; col++) {
             if (piece_frame[row][col] === 1) {
-                draw_square(this.x + col, this.y + row, VACANT, OUTLINE);
+                g_board[y + row][x + col] = EMPTY_SPACE;
             }   
         }
     }
 }
 
-
-function checkCollisions(piece, outside_x, outside_y) { //piece is one tetromino frame
-    for (let y = 0; y < piece.length; y++) {
-        for (let x = 0; x < piece[0].length; x++) {
-            if (piece[y][x] === 1) {
-                let current_y = outside_y + y;
-                if (current_y >= ROWS) {
-                    return true;
-                }
+function checkCollisions(piece_frame, outside_x, outside_y) { //piece is one tetromino frame
+    for (let y = 0; y < piece_frame.length; y++) {
+        for (let x = 0; x < piece_frame[0].length; x++) {
+            if (piece_frame[y][x] === 1) {
                 let current_x = outside_x + x;
+                let current_y = outside_y + y;
+
+                // collisions with the boundary
+                if (current_y >= ROWS) {
+                    console.log(`lower boundary collision`)
+                    return LOWER_COLLISION;
+                }
                 if (current_x < 0 || current_x >= COLUMNS) {
-                    return true;
+                    console.log(`side boundary collision`)
+                    return SIDE_COLLISION;
+                }
+
+                // collisions with other pieces
+                if (g_board[current_y][current_x] !== EMPTY_SPACE) {
+                    console.log(`piece collision`);
+                    return PIECE_COLLISION;
                 }
             }
         }
     }
-
-    /*
-    for (let x = 0; x < WIDTH; x++) {
-        for (let y = 0; y < HEIGHT; y++) {
-            if (board[y][x] === 1 && this.tetromino[y - this.y][x - this.x] === 1) {
-                return true;
-            }
-        }
-    }*/
     console.log(`no collision`);
-    return false;
+    return NO_COLLISION;
 }
 
-
-
 Piece.prototype.move_down = function move_down() {
+    undraw_piece(this.tetromino[this.tetrominoN], this.x, this.y);
     if (!checkCollisions(this.tetromino[this.tetrominoN], this.x, this.y + 1)) {
-        this.undraw_piece();
         this.y += 1;
-        this.draw_piece();
     }
-    else {
-        //reached the bottom, make a new piece
-    }
+    draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
+
+    draw_board(g_board);
 }
 
 Piece.prototype.move_right = function move_right() {
+    undraw_piece(this.tetromino[this.tetrominoN], this.x, this.y);
     if (!checkCollisions(this.tetromino[this.tetrominoN], this.x + 1, this.y)) {
-        this.undraw_piece();
         this.x += 1;
-        this.draw_piece();
     }
+    draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
+
+    draw_board(g_board);
 }
 
 Piece.prototype.move_left = function move_left() {
+    undraw_piece(this.tetromino[this.tetrominoN], this.x, this.y);
     if (!checkCollisions(this.tetromino[this.tetrominoN], this.x - 1, this.y)) {
-        this.undraw_piece();
         this.x -= 1;
-        this.draw_piece();
     }
+    draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
+    
+    draw_board(g_board);
 }
 
 Piece.prototype.rotate = function rotate() {
+    undraw_piece(this.tetromino[this.tetrominoN], this.x, this.y);
     if (!checkCollisions(this.tetromino[(this.tetrominoN + 1) % 4], this.x, this.y)) {
-        this.undraw_piece();
         this.tetrominoN = (this.tetrominoN + 1) % 4;
         this.active_tetromino = this.tetromino[this.tetrominoN];
-        this.draw_piece();
     }
+    draw_piece(this.tetromino[this.tetrominoN], this.x, this.y, this.color);
+
+    draw_board(g_board);
 }
 
 
